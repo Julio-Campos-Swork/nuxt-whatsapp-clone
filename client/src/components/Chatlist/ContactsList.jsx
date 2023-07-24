@@ -4,6 +4,7 @@ import axios from 'axios'
 import { BiArrowBack, BiSearchAlt2 } from 'react-icons/bi'
 import { useStateProvider } from '@/context/StateContext'
 import { reducerCases } from '@/context/constants'
+import ChatLIstItem from './ChatLIstItem'
 function ContactsList() {
   const [allContacts, setAllContacts] = useState([])
   const [{}, dispatch] = useStateProvider()
@@ -51,7 +52,20 @@ function ContactsList() {
           </div>
         </div>
         {Object.entries(allContacts).map(([initialLetter, userList]) => {
-          return <div></div>
+          return (
+            <div key={Date.now() + initialLetter}>
+              <div className="text-teal-light pl-10 py-5">{initialLetter}</div>
+              {userList.map((contact) => {
+                return (
+                  <ChatLIstItem
+                    data={contact}
+                    key={contact._id}
+                    isContactPage={true}
+                  />
+                )
+              })}
+            </div>
+          )
         })}
       </div>
     </div>
