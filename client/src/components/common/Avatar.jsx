@@ -64,7 +64,7 @@ function Avatar({ type, image, setImage }) {
    * element to the result of the file read and sets the image source as a data attribute.
    */
   const photoPickerChange = async (e) => {
-    console.log(e)
+    // console.log(e)
     const file = e.target.files[0]
     const reader = new FileReader()
     const data = document.createElement('img')

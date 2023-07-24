@@ -59,7 +59,7 @@ function ContactsList() {
                 return (
                   <ChatLIstItem
                     data={contact}
-                    key={contact._id}
+                    key={contact.id}
                     isContactPage={true}
                   />
                 )
