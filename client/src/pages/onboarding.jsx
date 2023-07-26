@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react'
 import { ONBOARD_USER_ROUTE } from '@/utils/ApiRoutes.js'
 import { useRouter } from 'next/router'
 import axios from 'axios'
+import { reducerCases } from '@/context/constants'
 //
 function onboarding() {
   const router = useRouter()
