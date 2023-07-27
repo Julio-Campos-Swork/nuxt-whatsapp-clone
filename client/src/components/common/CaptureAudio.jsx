@@ -9,6 +9,9 @@ import {
   FaTrash,
 } from 'react-icons/fa'
 import { MdSend } from 'react-icons/md'
+import axios from 'axios'
+import { ADD_AUDIO_MESSAGE_ROUTE } from '@/utils/ApiRoutes'
+import { reducerCases } from '@/context/constants'
 
 function CaptureAudio({ hide }) {
   const [{ userInfo, currentChatUser, socket }, dispatch] = useStateProvider()
@@ -20,18 +23,33 @@ function CaptureAudio({ hide }) {
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [totalDuration, setTotalDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(0)
-  const [renderAudio, setRenderAudio] = useState(null)
+  const [renderedAudio, setRenderedAudio] = useState(null)
 
   const audioRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const waveFormRef = useRef(null)
+
+  useEffect(() => {
+    let interval
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingDuration((prev) => {
+          setTotalDuration(prev + 1)
+          return prev + 1
+        })
+      }, 1000)
+    }
+    return () => {
+      clearInterval(interval)
+    }
+  }, [isRecording])
 
   const handleStartRecording = () => {
     setRecordingDuration(0)
     setCurrentPlaybackTime(0)
     setTotalDuration(0)
     setIsRecording(true)
-
+    setRecordedAudio(null)
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
@@ -46,18 +64,57 @@ function CaptureAudio({ hide }) {
           const audioUrl = URL.createObjectURL(blob)
           const audio = new Audio(audioUrl)
           setRecordedAudio(audio)
-          waveForm.load(audio)
+          waveForm.load(audioUrl)
         }
+        mediaRecorder.start()
       })
       .catch((error) => {
         console.error('Error accessing microphone', error)
       })
   }
-  const handleStopRecording = () => {}
-  const handlePlayRecording = () => {}
-  const handlePauseRecording = () => {}
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      waveForm.stop()
 
-  const sendRecording = async () => {}
+      const audioChunks = []
+      mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
+        audioChunks.push(event.data)
+      })
+      mediaRecorderRef.current.addEventListener('stop', () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' })
+        const audioFile = new File([audioBlob], 'recording.mp3')
+
+        setRenderedAudio(audioFile)
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (recordedAudio) {
+      const updatePlaybackTime = () => {
+        setCurrentPlaybackTime(recordedAudio.currentTime)
+      }
+      recordedAudio.addEventListener('timeupdate', updatePlaybackTime)
+      return () => {
+        recordedAudio.removeEventListener('timeupdate', updatePlaybackTime)
+      }
+    }
+  }, [recordedAudio])
+  const handlePlayRecording = () => {
+    if (recordedAudio) {
+      waveForm.stop()
+      waveForm.play()
+      recordedAudio.play()
+      setIsPlaying(true)
+    }
+  }
+  const handlePauseRecording = () => {
+    waveForm.stop()
+    recordedAudio.pause()
+    setIsPlaying(false)
+  }
 
   useEffect(() => {
     const wavesurfer = WaveSufer.create({
@@ -79,13 +136,7 @@ function CaptureAudio({ hide }) {
   }, [])
 
   useEffect(() => {
-    if (waveForm) {
-      handleStartRecording()
-    }
-
-    return () => {
-      second
-    }
+    if (waveForm) handleStartRecording()
   }, [waveForm])
 
   const formatTime = (time) => {
@@ -96,6 +147,38 @@ function CaptureAudio({ hide }) {
     return `${minutes.toString().padStart(2, '0')}:${seconds
       .toString()
       .padStart(2, '0')}`
+  }
+
+  const sendRecording = async () => {
+    try {
+      const formData = new FormData()
+      formData.append('audio', renderedAudio)
+      const response = await axios.post(ADD_AUDIO_MESSAGE_ROUTE, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        params: {
+          from: userInfo.id,
+          to: currentChatUser.id,
+        },
+      })
+      if (response.status === 201) {
+        socket.current.emit('send-msg', {
+          to: currentChatUser?.id,
+          from: userInfo?.id,
+          message: response.data.message,
+        })
+        dispatch({
+          type: reducerCases.ADD_MESSAGE,
+          newMessage: {
+            ...response.data.message,
+          },
+          fromSelf: true,
+        })
+      }
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   return (
@@ -128,27 +211,27 @@ function CaptureAudio({ hide }) {
         {recordedAudio && !isPlaying && (
           <span>{formatTime(totalDuration)}</span>
         )}
-        <audio ref={audioRef} hidden={isRecording} />
-        <div className="mr-4">
-          {!isRecording ? (
-            <FaMicrophone
-              className="text-red-500"
-              onClick={handleStartRecording}
-            />
-          ) : (
-            <FaPauseCircle
-              className="text-red-500"
-              onClick={handleStopRecording}
-            />
-          )}
-        </div>
-        <div>
-          <MdSend
-            className="text-panel-header-icon cursor-pointer mr-4"
-            title="Send"
-            onClick={sendRecording}
+        <audio ref={audioRef} hidden />
+      </div>
+      <div className="mr-4">
+        {!isRecording ? (
+          <FaMicrophone
+            className="text-red-500"
+            onClick={handleStartRecording}
           />
-        </div>
+        ) : (
+          <FaPauseCircle
+            className="text-red-500"
+            onClick={handleStopRecording}
+          />
+        )}
+      </div>
+      <div>
+        <MdSend
+          className="text-panel-header-icon cursor-pointer mr-4"
+          title="Send"
+          onClick={sendRecording}
+        />
       </div>
     </div>
   )

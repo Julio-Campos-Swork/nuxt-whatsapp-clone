@@ -9,7 +9,10 @@ import { ImAttachment } from 'react-icons/im'
 import { MdSend } from 'react-icons/md'
 import EmojiPicker from 'emoji-picker-react'
 import PhotoPicker from '../common/PhotoPicker'
-import CaptureAudio from '../common/CaptureAudio'
+import dynamic from 'next/dynamic'
+const CaptureAudio = dynamic(() => import('../common/CaptureAudio'), {
+  ssr: false,
+})
 function MessageBar() {
   const [{ userInfo, currentChatUser, socket }, dispatch] = useStateProvider()
   const [message, setMessage] = useState('')
