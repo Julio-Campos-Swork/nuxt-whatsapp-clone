@@ -50,6 +50,7 @@ function MessageBar() {
    * socket event to notify other users.
    */
   const sendMessage = async () => {
+    console.log({ currentChatUser })
     try {
       const { data } = await axios.post(ADD_MESSAGE_ROUTE, {
         to: currentChatUser?.id,

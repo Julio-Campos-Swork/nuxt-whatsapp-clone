@@ -166,16 +166,16 @@ export const getInitialContactsWithMessages = async (req, res, next) => {
       if (msg.messageStatus === 'sent') {
         messageStatusChange.push(msg.id)
       }
+      const {
+        id,
+        type,
+        message,
+        messageStatus,
+        createdAt,
+        senderId,
+        recieverId,
+      } = msg
       if (!users.get(calculatedId)) {
-        const {
-          id,
-          type,
-          message,
-          messageStatus,
-          createdAt,
-          senderId,
-          recieverId,
-        } = msg
         let user = {
           mesageid: id,
           type,
@@ -225,3 +225,5 @@ export const getInitialContactsWithMessages = async (req, res, next) => {
     next(error)
   }
 }
+
+
