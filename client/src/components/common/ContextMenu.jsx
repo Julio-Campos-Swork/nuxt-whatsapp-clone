@@ -42,7 +42,7 @@ function ContextMenu({ options, cordinates, contextMenu, setContextMenu }) {
             }}
             className="hover:bg-background-default-hover cursor-pointer px-4 py-2"
           >
-            <span>{name}</span>
+            <span className="text-white">{name}</span>
           </li>
         ))}
       </ul>
